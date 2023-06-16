@@ -1,5 +1,21 @@
+from flask import Flask, request, jsonify
 import cv2
 import piexif
+
+app = Flask(__name__)
+
+@app.route("/check-image", methods=["POST"])
+def check_image():
+    if "image" not in request.files:
+        return jsonify({"error": "No image file provided"})
+
+    image_file = request.files["image"]
+    image_path = "/path/to/save/uploaded/image.jpg"  # Provide the path where you want to save the uploaded image
+    image_file.save(image_path)
+
+    authenticity_result = is_photoshopped(image_path)
+
+    return jsonify(authenticity_result)
 
 def is_photoshopped(image_path):
     image = cv2.imread(image_path)
@@ -21,8 +37,12 @@ def is_photoshopped(image_path):
     software_tag = ifd_exif.get(piexif.ExifIFD.Software)
     is_manipulated = software_tag is not None and "photoshop" in software_tag.lower()
 
-    print(" Chance the image is manipulated: " , laplacian, "out of 100")
-    print("According to the EXIF data analysis this image is surely edited with software: " , is_manipulated)
-    
-image_path = "your_image_path"
-is_photoshopped(image_path)
+    authenticity_result = {
+        "laplacian": laplacian,
+        "is_manipulated": is_manipulated
+    }
+
+    return authenticity_result
+
+if __name__ == "__main__":
+    app.run()
